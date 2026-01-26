@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+/* Base tweaks for full-height layout and font */
+html, body, #root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: "Alumni Sans SC", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background-color: #000;
+}
