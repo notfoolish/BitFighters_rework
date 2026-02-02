@@ -14,6 +14,7 @@ const Input = forwardRef(function Input({
 	size = 'md',
 	className = '',
 	id,
+	rightAdornment,
 	...props
 }, ref) {
 	const inputId = id || props.name
@@ -26,7 +27,10 @@ const Input = forwardRef(function Input({
 					{label}
 				</label>
 			)}
-			<input id={inputId} ref={ref} className={cls} {...props} />
+			<div className={rightAdornment ? 'relative' : ''}>
+				<input id={inputId} ref={ref} className={cls} {...props} />
+				{rightAdornment}
+			</div>
 			{error && (
 				<p className="mt-2 text-sm text-red-400">{error}</p>
 			)}

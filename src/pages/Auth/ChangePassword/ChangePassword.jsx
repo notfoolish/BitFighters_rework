@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import Input from '../../../../src/components/ui/Input'
 import Button from '../../../../src/components/ui/Button'
+import { changePassword } from '../../../services/auth'
+import useAuth from '../../../hooks/useAuth'
 
 export default function ChangePassword() {
+	const { token } = useAuth()
 	const [current, setCurrent] = useState('')
 	const [next, setNext] = useState('')
 	const [confirm, setConfirm] = useState('')
@@ -24,14 +27,18 @@ export default function ChangePassword() {
 		}
 		setLoading(true)
 		try {
-			// TODO: Replace with real API call
-			await new Promise((r) => setTimeout(r, 600))
+			if (!token) {
+				setOk(false)
+				setMsg('Nincs bejelentkezve.')
+				return
+			}
+			await changePassword(next)
 			setOk(true)
-			setMsg('Jelszócsere elküldve (demó).')
+			setMsg('Jelszó sikeresen módosítva.')
 			setCurrent(''); setNext(''); setConfirm('')
 		} catch (e1) {
 			setOk(false)
-			setMsg('Hiba történt.')
+			setMsg(e1?.message || 'Hiba történt.')
 		} finally {
 			setLoading(false)
 		}

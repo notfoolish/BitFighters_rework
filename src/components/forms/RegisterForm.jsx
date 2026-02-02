@@ -1,14 +1,26 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { login as apiLogin, register as apiRegister, resendOtp, verifyOtp } from '../../services/auth'
+import useAuth from '../../hooks/useAuth'
+import Input from '../ui/Input'
+import Button from '../ui/Button'
 
 export default function RegisterForm() {
+	const navigate = useNavigate()
+	const { login } = useAuth()
+	const [email, setEmail] = useState('')
 	const [username, setUsername] = useState('')
 	const [password, setPassword] = useState('')
 	const [confirm, setConfirm] = useState('')
 	const [showPassword, setShowPassword] = useState(false)
 	const [showConfirm, setShowConfirm] = useState(false)
+	const [otp, setOtp] = useState('')
 	const [msg, setMsg] = useState('')
 	const [isSuccess, setIsSuccess] = useState(false)
 	const [loading, setLoading] = useState(false)
+	const [verifying, setVerifying] = useState(false)
+	const [resending, setResending] = useState(false)
+	const [resendCountdown, setResendCountdown] = useState(0)
 
 	const onSubmit = async (e) => {
 		e.preventDefault()
@@ -23,32 +35,68 @@ export default function RegisterForm() {
 
 		setLoading(true)
 		try {
-			const res = await fetch('https://bitfighters.eu/api/register.php', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ username, password })
-			})
-			let data
-			try {
-				data = await res.json()
-			} catch (_) {
-				data = {}
-			}
-			const ok = res.ok
-			setMsg(data?.message || (ok ? 'Sikeres regisztráció!' : 'Hiba történt'))
-			setIsSuccess(ok)
-			if (ok) {
-				setUsername('')
-				setPassword('')
-				setConfirm('')
-			}
+			await apiRegister(username, email, password)
+			setMsg('Sikeres regisztráció! A megerősítő kódot elküldtük emailben.')
+			setIsSuccess(true)
 		} catch (err) {
-			setMsg('Kapcsolati hiba!')
+			setMsg(err?.message || 'Kapcsolati hiba!')
 			setIsSuccess(false)
 		} finally {
 			setLoading(false)
 		}
 	}
+
+	const onVerify = async () => {
+		setMsg('')
+		setVerifying(true)
+		try {
+			await verifyOtp(email, otp)
+			const data = await apiLogin(username, password)
+			if (data?.token) {
+				login({ username, token: data.token, profile: { username } })
+				navigate('/')
+				return
+			}
+			setMsg('Email megerősítve! Sikeres bejelentkezés...')
+			setOtp('')
+			setEmail('')
+			setUsername('')
+			setPassword('')
+			setConfirm('')
+		} catch (err) {
+			setMsg(err?.message || 'Hibás megerősítő kód.')
+		} finally {
+			setVerifying(false)
+		}
+	}
+
+	const onResend = async () => {
+		if (resendCountdown > 0) return
+		setResending(true)
+		setMsg('')
+		try {
+			await resendOtp(email)
+			setMsg('Új megerősítő kód elküldve emailben.')
+			setIsSuccess(true)
+			setResendCountdown(60)
+		} catch (err) {
+			setMsg(err?.message || 'Nem sikerült elküldeni a megerősítő kódot.')
+			setIsSuccess(false)
+		} finally {
+			setResending(false)
+		}
+	}
+
+	useEffect(() => {
+		if (resendCountdown <= 0) return
+		const timer = setInterval(() => {
+			setResendCountdown((s) => (s > 0 ? s - 1 : 0))
+		}, 1000)
+		return () => clearInterval(timer)
+	}, [resendCountdown])
+
+	const formClass =
+		'backdrop-blur-[20px] bg-black/65 border-2 border-[#ffaa33]/70 rounded-[1.25rem] w-full max-w-[31.25rem] mb-[3.75rem] px-6 sm:px-[3.125rem] py-8 sm:py-[2.5rem] shadow-[0_0_1.25rem_rgba(255,174,66,0.6)] opacity-90 transition-opacity hover:opacity-100'
 
 	return (
 		<div className="w-full min-h-[calc(100vh-5rem)] flex flex-col items-center justify-start pt-10">
@@ -56,76 +104,112 @@ export default function RegisterForm() {
 				Regisztráció
 			</h1>
 
-			<form
-				onSubmit={onSubmit}
-				className="backdrop-blur-[20px] bg-black/65 border-2 border-[#ffaa33]/70 rounded-[1.25rem] w-full max-w-[31.25rem] mb-[3.75rem] px-[3.125rem] py-[2.5rem] shadow-[0_0_1.25rem_rgba(255,174,66,0.6)] opacity-90 transition-opacity hover:opacity-100"
-			>
-				<label className="text-[1.625rem] block mt-[1.5625rem] text-[#ffb366] font-semibold">
-					Felhasználónév:
-					<input
-						type="text"
+			{msg ? (
+				<p
+					className="text-center text-[2.1875rem] mb-6 font-semibold text-[#ff6600]"
+					aria-live="polite"
+				>
+					{msg}
+				</p>
+			) : null}
+
+			{!isSuccess ? (
+				<form onSubmit={onSubmit} className={formClass}>
+					<Input
+						label="Email:"
+						name="email"
+						type="email"
+						value={email}
+						onChange={(e) => setEmail(e.target.value)}
 						required
+						autoComplete="email"
+						size="lg"
+						className="mt-[0.625rem]"
+					/>
+
+					<Input
+						label="Felhasználónév:"
+						name="username"
 						value={username}
 						onChange={(e) => setUsername(e.target.value)}
-						className="w-full px-[0.6875rem] py-[0.6875rem] mt-[0.625rem] rounded-[0.875rem] border-2 border-[#ffaa33] text-[1.5625rem] bg-white/15 text-white shadow-[0_0_0.625rem_#ffaa33] outline-none transition focus:shadow-[0_0_1.375rem_#ffae42,0_0_2.125rem_#ffaa33] focus:border-[#ffae42] focus:bg-white/30"
+						required
+						autoComplete="username"
+						size="lg"
+						className="mt-[0.625rem]"
 					/>
-				</label>
 
-				<label className="text-[1.625rem] block mt-[1.5625rem] text-[#ffb366] font-semibold">
-					Jelszó:
-					<div className="relative">
-						<input
-							type={showPassword ? 'text' : 'password'}
-							required
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							className="w-full px-[0.6875rem] py-[0.6875rem] mt-[0.625rem] rounded-[0.875rem] border-2 border-[#ffaa33] text-[1.5625rem] bg-white/15 text-white shadow-[0_0_0.625rem_#ffaa33] outline-none transition focus:shadow-[0_0_1.375rem_#ffae42,0_0_2.125rem_#ffaa33] focus:border-[#ffae42] focus:bg-white/30 pr-12"
-						/>
-						<i
-							role="button"
-							aria-label={showPassword ? 'Jelszó elrejtése' : 'Jelszó megjelenítése'}
-							className={`bx ${showPassword ? 'bx-show' : 'bx-hide'} absolute right-[0.875rem] top-1/2 -translate-y-1/2 cursor-pointer text-[#ffaa33] text-[1.75rem] select-none leading-none mt-[5px]`}
-							onClick={() => setShowPassword((v) => !v)}
-						/>
-					</div>
-				</label>
+					<Input
+						label="Jelszó:"
+						name="password"
+						type={showPassword ? 'text' : 'password'}
+						value={password}
+						onChange={(e) => setPassword(e.target.value)}
+						required
+						autoComplete="new-password"
+						size="lg"
+						className="mt-[0.625rem] pr-12"
+						rightAdornment={
+							<i
+								role="button"
+								aria-label={showPassword ? 'Jelszó elrejtése' : 'Jelszó megjelenítése'}
+								className={`bx ${showPassword ? 'bx-show' : 'bx-hide'} absolute right-[0.875rem] top-1/2 -translate-y-1/2 cursor-pointer text-[#ffaa33] text-[1.75rem] select-none leading-none`}
+								onClick={() => setShowPassword((v) => !v)}
+							/>
+						}
+					/>
 
-				<label className="text-[1.625rem] block mt-[1.5625rem] text-[#ffb366] font-semibold">
-					Jelszó megerősítése:
-					<div className="relative">
-						<input
-							type={showConfirm ? 'text' : 'password'}
-							required
-							value={confirm}
-							onChange={(e) => setConfirm(e.target.value)}
-							className="w-full px-[0.6875rem] py-[0.6875rem] mt-[0.625rem] rounded-[0.875rem] border-2 border-[#ffaa33] text-[1.5625rem] bg-white/15 text-white shadow-[0_0_0.625rem_#ffaa33] outline-none transition focus:shadow-[0_0_1.375rem_#ffae42,0_0_2.125rem_#ffaa33] focus:border-[#ffae42] focus:bg-white/30 pr-12"
-						/>
-						<i
-							role="button"
-							aria-label={showConfirm ? 'Megerősítő jelszó elrejtése' : 'Megerősítő jelszó megjelenítése'}
-							className={`bx ${showConfirm ? 'bx-show' : 'bx-hide'} absolute right-[0.875rem] top-1/2 -translate-y-1/2 cursor-pointer text-[#ffaa33] text-[1.75rem] select-none leading-none mt-[5px]`}
-							onClick={() => setShowConfirm((v) => !v)}
-						/>
-					</div>
-				</label>
+					<Input
+						label="Jelszó megerősítése:"
+						name="confirm"
+						type={showConfirm ? 'text' : 'password'}
+						value={confirm}
+						onChange={(e) => setConfirm(e.target.value)}
+						required
+						autoComplete="new-password"
+						size="lg"
+						className="mt-[0.625rem] pr-12"
+						rightAdornment={
+							<i
+								role="button"
+								aria-label={showConfirm ? 'Megerősítő jelszó elrejtése' : 'Megerősítő jelszó megjelenítése'}
+								className={`bx ${showConfirm ? 'bx-show' : 'bx-hide'} absolute right-[0.875rem] top-1/2 -translate-y-1/2 cursor-pointer text-[#ffaa33] text-[1.75rem] select-none leading-none`}
+								onClick={() => setShowConfirm((v) => !v)}
+							/>
+						}
+					/>
 
-				<button
-					type="submit"
-					disabled={loading}
-					className="w-full py-[1.375rem] mt-[2.1875rem] text-[1.875rem] rounded-[1.125rem] border-0 bg-gradient-to-r from-[#ffaa33] to-[#ff7b00] text-white font-bold shadow-[0_0_1.25rem_#ffaa33] transition hover:from-[#ff9900] hover:to-[#ff6600] hover:shadow-[0_0_1.5625rem_#ffae42] hover:scale-[1.03] disabled:opacity-60 disabled:cursor-not-allowed"
-				>
-					{loading ? 'Feldolgozás…' : 'Regisztráció'}
-				</button>
-
-				{msg ? (
-					<p
-						className={`text-center text-[2.1875rem] mt-[1.5625rem] mb-0 font-semibold ${isSuccess ? 'text-green-500' : 'text-[#ff6600]'}`}
-						aria-live="polite"
+					<Button type="submit" loading={loading} block size="lg" className="mt-[2.1875rem]">
+						{loading ? 'Feldolgozás…' : 'Regisztráció'}
+					</Button>
+				</form>
+			) : (
+				<div className={formClass}>
+					<Input
+						label="Megerősítő kód:"
+						name="otp"
+						value={otp}
+						onChange={(e) => setOtp(e.target.value)}
+						required
+						size="lg"
+						className="mt-[0.625rem]"
+					/>
+					<Button type="button" loading={verifying} block size="lg" className="mt-4" onClick={onVerify}>
+						{verifying ? 'Ellenőrzés…' : 'Megerősítés'}
+					</Button>
+					<button
+						type="button"
+						onClick={onResend}
+						disabled={resending || resendCountdown > 0}
+						className="mt-3 w-full text-center text-[1.5rem] text-[#ffaa33] hover:text-[#ffae42]"
 					>
-						{msg}
-					</p>
-				) : null}
-			</form>
+						{resending
+							? 'Küldés…'
+							: resendCountdown > 0
+								? `Új megerősítő kód ${resendCountdown} mp`
+								: 'Új megerősítő kód kérése'}
+					</button>
+				</div>
+			)}
 		</div>
 	)
 }

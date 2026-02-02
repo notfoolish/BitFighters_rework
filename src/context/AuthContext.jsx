@@ -32,8 +32,8 @@ export function AuthProvider({ children }) {
 		} catch {}
 	}, [user, token])
 
-	const login = async ({ username, token: incomingToken, profile }) => {
-		setUser(profile || { username })
+	const login = async ({ user: incomingUser, token: incomingToken, profile }) => {
+		setUser(incomingUser || profile || null)
 		setToken(incomingToken || 'dev-token')
 	}
 

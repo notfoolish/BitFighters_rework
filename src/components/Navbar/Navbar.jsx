@@ -10,97 +10,123 @@ export default function Navbar() {
 	const { user, logout } = useAuth()
 	const isAuth = !!user
 
-	const common = [
-		{ to: ROUTES.HOME, label: 'Kezdőlap' },
-		{ to: ROUTES.LEADERBOARD, label: 'Ranglista' },
-		{ to: ROUTES.PATCH_NOTES, label: 'Patch Notes' },
+	const iconNav = [
+		{ type: 'link', to: ROUTES.HOME, label: 'Kezdőlap', icon: 'fa-solid fa-house' },
+		{
+			type: isAuth ? 'download' : 'link',
+			to: isAuth ? '/BitFightersLauncherSetup.exe' : ROUTES.LOGIN,
+			label: 'Letöltés',
+			icon: 'fa-solid fa-download',
+		},
+		{
+			type: 'link',
+			to: isAuth ? ROUTES.PROFILE : ROUTES.LOGIN,
+			label: 'Profil',
+			icon: 'fa-solid fa-user',
+		},
+		...(isAuth
+			? [
+					{ type: 'link', to: ROUTES.LEADERBOARD, label: 'Ranglista', icon: 'fa-solid fa-trophy' },
+					{ type: 'button', label: 'Kijelentkezés', icon: 'fa-solid fa-right-from-bracket' },
+			  ]
+			: []),
 	]
 
-	const nav = isAuth
-		? [...common, { to: ROUTES.FRIENDS, label: 'Barátok' }, { to: ROUTES.PROFILE, label: 'Profil' }]
-		: [...common, { to: ROUTES.LOGIN, label: 'Bejelentkezés' }, { to: ROUTES.REGISTER, label: 'Regisztráció' }]
-
 	const linkBase =
-		'text-[#ffaa33] font-semibold transition rounded-xl px-3 py-2 hover:bg-[#ffaa33]/15 hover:text-[#ffae42] hover:shadow-[0_0_12px_#ffaa33]'
+		'inline-flex items-center justify-center text-[#ffaa33] transition rounded-2xl h-12 w-12 bg-black/80 backdrop-blur-md border border-[#ffaa33]/70 shadow-[0_10px_24px_rgba(0,0,0,0.55)] hover:bg-black hover:text-[#ffae42] hover:shadow-[0_0_14px_#ffaa33]'
+	const linkBaseMobile =
+		'inline-flex items-center gap-3 text-[#ffaa33] transition rounded-2xl h-12 w-full px-4 bg-black/80 backdrop-blur-md border border-[#ffaa33]/70 shadow-[0_10px_24px_rgba(0,0,0,0.55)] hover:bg-black hover:text-[#ffae42] hover:shadow-[0_0_14px_#ffaa33]'
 
-	const closeMenu = () => setOpen(false)
 	const onLogout = () => {
 		logout()
-		setOpen(false)
 		navigate(ROUTES.HOME)
 	}
 
-	return (
-		<nav className="fixed top-0 left-0 right-0 z-50 bg-black/90 border-b-2 border-[#ffaa33]/70 shadow-[0_4px_12px_rgba(255,174,66,0.4)]">
-			<div className="mx-auto max-w-7xl px-4">
-				<div className="h-16 flex items-center justify-between">
+	const renderItem = (item, { className = linkBase, showLabel = false, onClick } = {}) => {
+		const active = item.type === 'link' && location.pathname === item.to
+		const labelClass = showLabel ? 'text-lg' : 'sr-only'
+		if (item.type === 'anchor') {
+			return (
+				<li key={item.label}>
+					<a href={item.to} className={`${className} ${active ? 'bg-[#ffaa33]/15 text-[#ffae42]' : ''}`} onClick={onClick}>
+						<i className={`${item.icon} text-xl`} aria-hidden="true" />
+						<span className={labelClass}>{item.label}</span>
+					</a>
+				</li>
+			)
+		}
+		if (item.type === 'download') {
+			return (
+				<li key={item.label}>
+					<a href={item.to} download className={className} aria-label={item.label} onClick={onClick}>
+						<i className={`${item.icon} text-xl`} aria-hidden="true" />
+						<span className={labelClass}>{item.label}</span>
+					</a>
+				</li>
+			)
+		}
+		if (item.type === 'button') {
+			return (
+				<li key={item.label}>
 					<button
 						type="button"
-						aria-label={open ? 'Menü bezárása' : 'Menü megnyitása'}
-						aria-expanded={open}
-						onClick={() => setOpen((v) => !v)}
-						className="md:hidden text-[#ffaa33] p-2 rounded-lg hover:bg-[#ffaa33]/15 hover:text-[#ffae42] focus:outline-none focus:ring-2 focus:ring-[#ffaa33]/60"
+						onClick={() => {
+							onLogout()
+							if (onClick) onClick()
+						}}
+						className={className}
+						aria-label={item.label}
 					>
-						<i className={`bx ${open ? 'bx-x' : 'bx-menu'} text-3xl leading-none`} />
+						<i className={`${item.icon} text-xl`} aria-hidden="true" />
+						<span className={labelClass}>{item.label}</span>
 					</button>
-
-					<ul className="hidden md:flex items-center gap-6 lg:gap-8">
-						{nav.map((item) => {
-							const active = location.pathname === item.to
-							return (
-								<li key={item.label}>
-									<Link
-										to={item.to}
-										className={`${linkBase} text-xl lg:text-2xl ${active ? 'bg-[#ffaa33]/15 text-[#ffae42]' : ''}`}
-									>
-										{item.label}
-									</Link>
-								</li>
-							)
-						})}
-						{isAuth && (
-							<li>
-								<button
-									type="button"
-									onClick={onLogout}
-									className="text-[#ffaa33] font-semibold text-xl lg:text-2xl rounded-xl px-3 py-2 hover:bg-[#ffaa33]/15 hover:text-[#ffae42] hover:shadow-[0_0_12px_#ffaa33]"
-								>
-									Kijelentkezés
-								</button>
-							</li>
-						)}
-					</ul>
+				</li>
+			)
+		}
+		return (
+			<li key={item.label}>
+				<Link
+					to={item.to}
+					className={`${className} ${active ? 'bg-[#ffaa33]/15 text-[#ffae42]' : ''}`}
+					aria-label={item.label}
+					onClick={onClick}
+				>
+					<i className={`${item.icon} text-xl`} aria-hidden="true" />
+					<span className={labelClass}>{item.label}</span>
+				</Link>
+			</li>
+		)
+	}
+	return (
+		<nav className="fixed top-4 left-1/2 z-50 w-[calc(100%-1.5rem)] max-w-xl -translate-x-1/2">
+			<div className="px-4">
+				<div className="flex items-center justify-end md:hidden">
+					<button
+						type="button"
+						onClick={() => setOpen((v) => !v)}
+						aria-expanded={open}
+						aria-label={open ? 'Menü bezárása' : 'Menü megnyitása'}
+						className="inline-flex items-center justify-center rounded-2xl h-12 w-12 text-[#ffaa33] bg-black/80 border border-[#ffaa33]/70 shadow-[0_10px_24px_rgba(0,0,0,0.55)]"
+					>
+						<i className={`fa-solid ${open ? 'fa-xmark' : 'fa-bars'} text-xl`} aria-hidden="true" />
+					</button>
 				</div>
 
-				<div className={`${open ? 'block' : 'hidden'} md:hidden pb-4`}>
-					<ul className="flex flex-col gap-2">
-						{nav.map((item) => {
-							const active = location.pathname === item.to
-							return (
-								<li key={item.label}>
-									<Link
-										to={item.to}
-										onClick={closeMenu}
-										className={`${linkBase} block text-xl w-full` + (active ? ' bg-[#ffaa33]/15 text-[#ffae42]' : '')}
-									>
-										{item.label}
-									</Link>
-								</li>
-							)
-						})}
-						{isAuth && (
-							<li>
-								<button
-									type="button"
-									onClick={onLogout}
-									className="w-full text-left block text-[#ffaa33] font-semibold text-xl rounded-xl px-3 py-2 hover:bg-[#ffaa33]/15 hover:text-[#ffae42] hover:shadow-[0_0_12px_#ffaa33]"
-								>
-									Kijelentkezés
-								</button>
-							</li>
-						)}
-					</ul>
-				</div>
+				<ul className="mx-auto hidden md:flex items-center justify-center gap-5 rounded-[2rem] border border-[#ffaa33]/40 bg-black/70 px-5 py-3 shadow-[0_12px_30px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+					{iconNav.map((item) => renderItem(item))}
+				</ul>
+
+				{open && (
+					<div className="md:hidden mt-3 rounded-2xl border border-[#ffaa33]/40 bg-black/80 px-4 py-4 shadow-[0_12px_30px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+						<ul className="flex flex-col gap-3">
+							{iconNav.map((item) => renderItem(item, {
+								className: linkBaseMobile,
+								showLabel: true,
+								onClick: () => setOpen(false)
+							}))}
+						</ul>
+					</div>
+				)}
 			</div>
 		</nav>
 	)

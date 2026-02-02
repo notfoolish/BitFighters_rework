@@ -1,26 +1,54 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ROUTES } from '../../routes/paths'
+import { fetchPatchnotes } from '../../services/patchnotes'
+import useAuth from '../../hooks/useAuth'
 
 export default function Home() {
+	const { token } = useAuth()
 	const [loggedIn, setLoggedIn] = useState(false)
 	const [selectedPatch, setSelectedPatch] = useState('')
+	const [patchNotes, setPatchNotes] = useState([])
+	const [loadingNotes, setLoadingNotes] = useState(false)
+	const [notesError, setNotesError] = useState('')
   const navigate = useNavigate()
 
 	useEffect(() => {
-		const token = typeof window !== 'undefined' ? window.localStorage.getItem('token') : null
 		setLoggedIn(!!token)
+	}, [token])
+
+	useEffect(() => {
+		let isMounted = true
+		setLoadingNotes(true)
+		setNotesError('')
+		fetchPatchnotes()
+			.then((data) => {
+				if (!isMounted) return
+				const items = Array.isArray(data) ? data : []
+				setPatchNotes(items)
+				if (items.length > 0) {
+					setSelectedPatch((prev) => prev || String(items[0].id))
+				}
+			})
+			.catch((err) => {
+				if (!isMounted) return
+				setNotesError(err?.message || 'Nem sikerült betölteni a patch note-okat')
+				setPatchNotes([])
+			})
+			.finally(() => {
+				if (!isMounted) return
+				setLoadingNotes(false)
+			})
+
+		return () => {
+			isMounted = false
+		}
 	}, [])
 
-	const patchNotes = useMemo(
-		() => [
-			{ id: '1.0.0', title: '1.0.0 – Kezdő kiadás', content: 'Első stabil verzió, alap játékmódok és UI.' },
-			{ id: '1.1.0', title: '1.1.0 – Egyensúly frissítés', content: 'Fegyver balansz, hibajavítások és teljesítmény.' },
-		],
-		[]
+	const currentPatch = useMemo(
+		() => patchNotes.find((p) => String(p.id) === String(selectedPatch)),
+		[patchNotes, selectedPatch]
 	)
-
-	const currentPatch = useMemo(() => patchNotes.find(p => p.id === selectedPatch), [patchNotes, selectedPatch])
 
 	return (
 		<div className="max-w-[1000px] mx-auto">
@@ -105,6 +133,12 @@ export default function Home() {
 				<label htmlFor="patchNotesDropdown" className={`text-white font-bold text-2xl block text-center tracking-wide mb-4 sm:text-3xl`}>
 					Patch Notes:
 				</label>
+				{loadingNotes && (
+					<p className="text-center text-white/70 mb-4">Betöltés...</p>
+				)}
+				{notesError && !loadingNotes && (
+					<p className="text-center text-red-300 mb-4">{notesError}</p>
+				)}
 				<div className="flex justify-center">
 					<select id="patchNotesDropdown" value={selectedPatch} onChange={(e) => setSelectedPatch(e.target.value)} className={`w-full text-base px-4 py-3 bg-[#111] text-white border-2 border-[#ffaa33]/70 rounded-lg mb-6 outline-none focus:border-[#ff7b00] sm:w-4/5 md:w-3/5 sm:text-lg`}>
 						<option value="">Válassz egy patch note-ot</option>
