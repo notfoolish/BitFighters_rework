@@ -3,8 +3,12 @@ import useAuth from '../../hooks/useAuth'
 import { ROUTES } from '../../routes/paths'
 
 export default function ProtectedRoute({ children }) {
-	const { token } = useAuth()
+	const { token, initialized } = useAuth()
 	const location = useLocation()
+
+	if (!initialized) {
+		return null
+	}
 
 	if (!token) {
 		return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />

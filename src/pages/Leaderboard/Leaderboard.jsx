@@ -70,8 +70,48 @@ export default function Leaderboard() {
 					{error}
 				</div>
 			)}
-			<div className="w-full max-w-[720px] mx-auto overflow-x-auto rounded-2xl shadow-[0_0_22px_rgba(255,174,66,0.6)] backdrop-blur-[20px] bg-black/65 border-2 border-[#ffaa33]/70 opacity-90 transition-opacity hover:opacity-100">
-				<table className="w-full border-separate border-spacing-0">
+			<div className="w-full max-w-[720px] mx-auto">
+				<div className="sm:hidden space-y-3">
+					{data.length === 0 && !loading ? (
+						<div className="rounded-2xl border-2 border-[#ffaa33]/70 bg-black/65 px-4 py-5 text-center text-white/70 backdrop-blur-[20px]">
+							Nincs megjeleníthető eredmény.
+						</div>
+					) : (
+						data.map((user, idx) => {
+							const score = user.highest_score ?? 0
+							const rank = getRank(score)
+							const profilePic = normalizePicturePath(user.profile_picture)
+							return (
+								<div
+									key={`${user.username}-${idx}`}
+									className="rounded-2xl border-2 border-[#ffaa33]/70 bg-black/65 px-4 py-4 shadow-[0_0_18px_rgba(255,174,66,0.45)] backdrop-blur-[20px]"
+								>
+									<div className="flex items-center gap-3">
+										<img
+											src={profilePic}
+											alt="Profilkép"
+											className="w-12 h-12 rounded-full"
+											onError={(e) => { e.currentTarget.src = '/img/default_pfp.png' }}
+										/>
+										<div className="flex-1">
+											<div className="text-white font-semibold text-lg">
+												{user.username || '-'}
+											</div>
+											<div className="text-white/70 text-sm">
+												Legmagasabb pontszám: {score}
+											</div>
+											<div className="text-white/70 text-sm">
+												Rang: {rank}
+											</div>
+										</div>
+									</div>
+								</div>
+							)
+						})
+					)}
+				</div>
+				<div className="hidden sm:block overflow-x-auto rounded-2xl shadow-[0_0_22px_rgba(255,174,66,0.6)] backdrop-blur-[20px] bg-black/65 border-2 border-[#ffaa33]/70 opacity-90 transition-opacity hover:opacity-100">
+					<table className="w-full border-separate border-spacing-0">
 					<thead>
 						<tr>
 							{['Profilkép','Felhasználónév','Legmagasabb pontszám','Rang'].map((label) => (
@@ -127,6 +167,7 @@ export default function Leaderboard() {
 						)}
 					</tbody>
 				</table>
+				</div>
 			</div>
 		</div>
 	)

@@ -56,17 +56,23 @@ export default function Home() {
 				<img
 					src="/img/Logo.png"
 					alt="BitFighters Logo"
-					className={`w-[350px] rounded-2xl transition-transform duration-300 hover:animate-pulse shadow-[0_0_0_rgba(255,165,0,0)] hover:shadow-[0_0_40px_10px_rgba(255,165,0,0.8)] sm:w-[450px] md:w-[700px]`}
+					className={`logo-animate w-[350px] rounded-2xl transition-transform duration-300 hover:animate-pulse shadow-[0_0_0_rgba(255,165,0,0)] hover:shadow-[0_0_40px_10px_rgba(255,165,0,0.8)] sm:w-[450px] md:w-[700px]`}
 				/>
 			</div>
 
 			{loggedIn ? (
 				<section id="download" className={`backdrop-blur-xl bg-black/65 border-2 border-[#ffaa33]/70 rounded-2xl mx-auto mt-8 mb-6 px-6 py-8 shadow-[0_0_20px_rgba(255,174,66,0.6)] w-full text-center md:w-2/3`}>
-					<p id="letoltes" className={`-mt-2 text-5xl font-bold mb-2 text-white sm:text-6xl md:text-7xl`}>
+					<p id="letoltes" className={`-mt-2 text-5xl font-bold mb-4 text-white sm:text-6xl md:text-7xl`}>
 						játék letöltése
 					</p>
-					<a href="/BitFighters/BitFightersLauncherSetup.exe" download className="inline-block">
-						<i className={`bx bx-arrow-in-down-square-half text-white w-[70%] text-[2.5rem] sm:text-[3.5rem] md:text-[4rem] p-3 rounded-[30px] border-[3px] border-[#ffaa33] bg-[linear-gradient(to_right,#ffaa33,#ff7b00)] shadow-[0_0_20px_#ff7b00] transition-transform duration-300 hover:scale-110 hover:bg-[linear-gradient(to_right,#ff9900,#ff6600)] hover:shadow-[0_0_25px_#ffae42]`}></i>
+					<a
+						href="/BitFighters/BitFightersLauncherSetup.exe"
+						download
+						className="inline-flex items-center justify-center gap-3 rounded-2xl border-2 border-[#ffaa33] bg-[linear-gradient(to_right,#ffaa33,#ff7b00)] px-6 py-3 text-white text-2xl font-semibold shadow-[0_0_18px_#ff7b00] transition-all duration-300 hover:scale-[1.03] hover:bg-[linear-gradient(to_right,#ff9900,#ff6600)] hover:shadow-[0_0_24px_#ffae42] sm:px-8 sm:py-4 sm:text-3xl"
+						aria-label="Játék letöltése"
+					>
+						<i className="fa-solid fa-download text-2xl sm:text-3xl" aria-hidden="true" />
+						<span>Játék letöltése</span>
 					</a>
 				</section>
 			) : (

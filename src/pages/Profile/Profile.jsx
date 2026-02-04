@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
 import Spinner from '../../components/ui/Spinner'
+import Modal from '../../components/ui/Modal'
 import useAuth from '../../hooks/useAuth'
 import { jsonFetch, buildUrl } from '../../services/apiClient'
 import { changeUsername, deleteAccount } from '../../services/auth'
@@ -35,6 +36,7 @@ export default function Profile() {
 	const [usernameInput, setUsernameInput] = useState('')
 	const [avatarFile, setAvatarFile] = useState(null)
 	const [avatarPreview, setAvatarPreview] = useState('')
+	const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
 
 	useEffect(() => {
 		if (!token) {
@@ -159,6 +161,12 @@ export default function Profile() {
 		} catch (err) {
 			setMessage(err?.message || 'Hiba történt a fiók törlése során.')
 		}
+	}
+
+	const handleConfirmLogout = () => {
+		setLogoutConfirmOpen(false)
+		logout()
+		navigate(ROUTES.HOME)
 	}
 
 	if (!token) {
@@ -321,7 +329,11 @@ export default function Profile() {
 							<Button variant="secondary" size="lg" onClick={() => navigate(ROUTES.CHANGE_PASSWORD)}>
 								Jelszó módosítása
 							</Button>
-							<Button variant="outline" size="lg" onClick={() => { logout(); navigate(ROUTES.HOME) }}>
+							<Button
+								variant="outline"
+								size="lg"
+								onClick={() => setLogoutConfirmOpen(true)}
+							>
 								Kijelentkezés
 							</Button>
 							<Button
@@ -336,6 +348,22 @@ export default function Profile() {
 					</section>
 				</>
 			)}
+
+			<Modal
+				open={logoutConfirmOpen}
+				onClose={() => setLogoutConfirmOpen(false)}
+				title="Kijelentkezés"
+			>
+				Biztosan ki szeretnél jelentkezni?
+				<div className="mt-5 flex flex-wrap gap-3 justify-end">
+					<Button variant="ghost" onClick={() => setLogoutConfirmOpen(false)}>
+						Mégse
+					</Button>
+					<Button variant="primary" onClick={handleConfirmLogout}>
+						Kijelentkezés
+					</Button>
+				</div>
+			</Modal>
 		</div>
 	)
 }

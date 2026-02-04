@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 const AuthContext = createContext({
 	user: null,
 	token: null,
+	initialized: false,
 	login: async (_credentials) => {},
 	logout: () => {},
 })
@@ -10,6 +11,7 @@ const AuthContext = createContext({
 export function AuthProvider({ children }) {
 	const [user, setUser] = useState(null)
 	const [token, setToken] = useState(null)
+	const [initialized, setInitialized] = useState(false)
 
 	useEffect(() => {
 		try {
@@ -20,17 +22,19 @@ export function AuthProvider({ children }) {
 				if (u) setUser(u)
 			}
 		} catch {}
+		setInitialized(true)
 	}, [])
 
 	useEffect(() => {
 		try {
+			if (!initialized) return
 			if (token) {
 				localStorage.setItem('bf_auth', JSON.stringify({ user, token }))
 			} else {
 				localStorage.removeItem('bf_auth')
 			}
 		} catch {}
-	}, [user, token])
+	}, [user, token, initialized])
 
 	const login = async ({ user: incomingUser, token: incomingToken, profile }) => {
 		setUser(incomingUser || profile || null)
@@ -42,7 +46,7 @@ export function AuthProvider({ children }) {
 		setToken(null)
 	}
 
-	const value = useMemo(() => ({ user, token, login, logout }), [user, token])
+	const value = useMemo(() => ({ user, token, initialized, login, logout }), [user, token, initialized])
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
