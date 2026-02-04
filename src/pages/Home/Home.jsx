@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ROUTES } from '../../routes/paths'
 import { fetchPatchnotes } from '../../services/patchnotes'
@@ -11,11 +11,24 @@ export default function Home() {
 	const [patchNotes, setPatchNotes] = useState([])
 	const [loadingNotes, setLoadingNotes] = useState(false)
 	const [notesError, setNotesError] = useState('')
+	const [isPatchOpen, setIsPatchOpen] = useState(false)
+	const patchRef = useRef(null)
   const navigate = useNavigate()
 
 	useEffect(() => {
 		setLoggedIn(!!token)
 	}, [token])
+
+	useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (!patchRef.current) return
+			if (!patchRef.current.contains(event.target)) {
+				setIsPatchOpen(false)
+			}
+		}
+		document.addEventListener('mousedown', handleClickOutside)
+		return () => document.removeEventListener('mousedown', handleClickOutside)
+	}, [])
 
 	useEffect(() => {
 		let isMounted = true
@@ -50,6 +63,8 @@ export default function Home() {
 		[patchNotes, selectedPatch]
 	)
 
+	const visiblePatchNotes = useMemo(() => patchNotes, [patchNotes])
+
 	return (
 		<div className="max-w-[1000px] mx-auto">
 			<div className="flex justify-center">
@@ -68,11 +83,14 @@ export default function Home() {
 					<a
 						href="/BitFighters/BitFightersLauncherSetup.exe"
 						download
-						className="inline-flex items-center justify-center gap-3 rounded-2xl border-2 border-[#ffaa33] bg-[linear-gradient(to_right,#ffaa33,#ff7b00)] px-6 py-3 text-white text-2xl font-semibold shadow-[0_0_18px_#ff7b00] transition-all duration-300 hover:scale-[1.03] hover:bg-[linear-gradient(to_right,#ff9900,#ff6600)] hover:shadow-[0_0_24px_#ffae42] sm:px-8 sm:py-4 sm:text-3xl"
+						className="group relative inline-flex items-center justify-center gap-3 overflow-hidden rounded-2xl border-2 border-[#ffaa33] bg-black px-6 py-3 text-white text-2xl font-semibold shadow-[0_0_18px_rgba(255,123,0,0.35)] transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_24px_#ffae42] sm:px-8 sm:py-4 sm:text-3xl"
 						aria-label="Játék letöltése"
 					>
-						<i className="fa-solid fa-download text-2xl sm:text-3xl" aria-hidden="true" />
-						<span>Játék letöltése</span>
+						<span className="absolute inset-0 -translate-x-full bg-[linear-gradient(to_right,#ffaa33,#ff7b00)] transition-transform duration-300 group-hover:translate-x-0" />
+						<span className="relative inline-flex items-center gap-3">
+							<i className="fa-solid fa-download text-2xl sm:text-3xl" aria-hidden="true" />
+							<span>Játék letöltése</span>
+						</span>
 					</a>
 				</section>
 			) : (
@@ -146,12 +164,42 @@ export default function Home() {
 					<p className="text-center text-red-300 mb-4">{notesError}</p>
 				)}
 				<div className="flex justify-center">
-					<select id="patchNotesDropdown" value={selectedPatch} onChange={(e) => setSelectedPatch(e.target.value)} className={`w-full text-base px-4 py-3 bg-[#111] text-white border-2 border-[#ffaa33]/70 rounded-lg mb-6 outline-none focus:border-[#ff7b00] sm:w-4/5 md:w-3/5 sm:text-lg`}>
-						<option value="">Válassz egy patch note-ot</option>
-						{patchNotes.map(p => (
-							<option key={p.id} value={p.id}>{p.title}</option>
-						))}
-					</select>
+					<div ref={patchRef} className="relative w-full sm:w-4/5 md:w-3/5">
+						<button
+							type="button"
+							id="patchNotesDropdown"
+							onClick={() => setIsPatchOpen((v) => !v)}
+							className={`w-full text-base px-4 py-3 bg-[#111] text-white border-2 border-[#ffaa33]/70 rounded-lg mb-2 outline-none focus:border-[#ff7b00] sm:text-lg flex items-center justify-between gap-3`}
+							aria-expanded={isPatchOpen}
+						>
+							<span>{currentPatch?.title || 'Válassz egy patch note-ot'}</span>
+							<i className={`fa-solid fa-chevron-${isPatchOpen ? 'up' : 'down'} text-[#ffaa33]`} aria-hidden="true" />
+						</button>
+						{isPatchOpen && (
+							<div className="absolute z-20 mt-1 w-full rounded-lg border-2 border-[#ffaa33]/70 bg-[#111] shadow-[0_0_18px_rgba(255,174,66,0.35)] max-h-64 overflow-y-auto bf-scroll">
+								{visiblePatchNotes.length === 0 ? (
+									<div className="px-4 py-3 text-white/70">Nincs patch note.</div>
+								) : (
+									<ul className="py-1">
+										{visiblePatchNotes.map((p) => (
+											<li key={p.id}>
+												<button
+													type="button"
+													className={`w-full text-left px-4 py-2 text-white hover:bg-[#ffaa33]/15 ${String(selectedPatch) === String(p.id) ? 'bg-[#ffaa33]/20' : ''}`}
+													onClick={() => {
+														setSelectedPatch(p.id)
+														setIsPatchOpen(false)
+													}}
+												>
+													{p.title}
+												</button>
+											</li>
+										))}
+									</ul>
+								)}
+							</div>
+						)}
+					</div>
 				</div>
 				<h3 id="patchNoteTitle" className={`text-[#ff7b00] text-xl mt-2 mb-2 sm:text-2xl`}>
 					{currentPatch?.title || ''}

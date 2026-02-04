@@ -57,7 +57,7 @@ export default function Leaderboard() {
 	return (
 		<div className="px-2">
 			<h2 className="text-center text-[#ff7b00] drop-shadow-[0_0_10px_#000] mb-8 font-bold text-3xl sm:text-4xl md:text-5xl pt-5">
-				🏆 Leaderboard
+				Ranglista
 			</h2>
 			{loading && (
 				<div className="flex items-center justify-center gap-3 text-white/80 mb-6">

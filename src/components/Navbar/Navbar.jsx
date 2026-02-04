@@ -66,7 +66,7 @@ export default function Navbar() {
 		{
 			type: 'link',
 			to: isAuth ? ROUTES.PROFILE : ROUTES.LOGIN,
-			label: 'Profil',
+			label: isAuth ? 'Profil' : 'Bejelentkezés',
 			icon: 'fa-solid fa-user',
 		},
 		...(isAuth

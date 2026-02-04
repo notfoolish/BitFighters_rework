@@ -144,20 +144,32 @@ export default function Friends() {
 		chatEndRef.current.scrollIntoView({ behavior: 'smooth' })
 	}, [messages, selectedUsername])
 
-	const handleSearch = async (e) => {
-		e.preventDefault()
-		setError('')
-		if (!searchQuery.trim()) {
+	const handleSearch = async (query, { silent = false } = {}) => {
+		if (!silent) setError('')
+		const q = query.trim()
+		if (!q) {
 			setSearchResults([])
 			return
 		}
 		try {
-			const data = await searchUsers(searchQuery.trim())
+			const data = await searchUsers(q)
 			setSearchResults(Array.isArray(data) ? data : [])
 		} catch (err) {
-			setError(err?.message || 'Nem sikerült keresni.')
+			if (!silent) setError(err?.message || 'Nem sikerült keresni.')
 		}
 	}
+
+	useEffect(() => {
+		const q = searchQuery.trim()
+		if (!q) {
+			setSearchResults([])
+			return
+		}
+		const id = setTimeout(() => {
+			handleSearch(q, { silent: true })
+		}, 350)
+		return () => clearTimeout(id)
+	}, [searchQuery])
 
 	const handleSendMessage = async (e) => {
 		e.preventDefault()
@@ -225,7 +237,13 @@ export default function Friends() {
 						) : null}
 					</div>
 
-					<form onSubmit={handleSearch} className="flex gap-2 mb-4">
+					<form
+						onSubmit={(e) => {
+							e.preventDefault()
+							handleSearch(searchQuery)
+						}}
+						className="flex gap-2 mb-4"
+					>
 						<Input
 							name="search"
 							value={searchQuery}
